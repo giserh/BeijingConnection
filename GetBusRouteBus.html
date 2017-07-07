@@ -1,0 +1,140 @@
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	<style type="text/css">
+		#allmap {width: 100%;height: 80%;overflow: hidden;margin:0;font-family:"微软雅黑";}
+	</style>
+	<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=uwhciGdsgvcAvzybc6Up1S4Q"></script>
+	<script src="http://libs.baidu.com/jquery/1.9.0/jquery.js"></script>
+	<title>计算公交时间与距离</title>
+</head>
+<script type="text/javascript">
+	var busDis,busTime;
+	var result="";
+
+	//获取公交时间和距离
+	var searchCompleteBus = function (results){
+		if (transitBus.getStatus() != BMAP_STATUS_SUCCESS){
+			return ;
+		}
+		//获取具体的时间和距离
+		var plan = results.getPlan(0);
+		busDis=plan.getDistance(true);
+		busTime=plan.getDuration(true);
+		result+=busDis+","+busTime+"\n";
+		
+		//第一个点不动，获取第二个点
+		if(circulation_count2!==allPts.length-2){
+			circulation_count2+=1;
+		}
+		else{
+			//如果第二个点到了最后，则第一个点+1
+			circulation_count1+=1;
+			circulation_count2=circulation_count1+1;
+			var con=document.getElementById("contentFinal");
+				con.innerHTML=result;
+		}
+		
+		if(circulation_count1==allPts.length-1){
+			//如果第一个点到了最后则全部结束
+			alert("Finish!");
+		}
+		else{
+			var p1 = new BMap.Point(allPts[circulation_count1].lon,allPts[circulation_count1].lat);
+			var p2 = new BMap.Point(allPts[circulation_count2].lon,allPts[circulation_count2].lat);
+			computeRoute(p1,p2);
+			result+=circulation_count1+","+circulation_count2+","+allPts[circulation_count1].region+","+allPts[circulation_count2].region+",";
+		}
+	}
+	
+	//设置乘公交的参数
+	var transitBus=new BMap.TransitRoute("北京",{policy:BMAP_TRANSIT_POLICY_LEAST_TIME,
+		onSearchComplete:searchCompleteBus
+		});
+		
+	
+	//计算驾车时间与距离
+	function computeRoute(p1,p2){
+		transitBus.search(p1,p2);
+	}
+	
+	//判断浏览器是否支持FileReader接口  
+	if(typeof FileReader == 'undefined'){	
+	var div=document.getElementById("dd");
+	div.innerHTML='你的浏览器不支持FileReader接口！';
+	document.getElementById("file").setAttribute("disabled","disabled");
+	}
+	
+	//定义所有的点
+	var allPts=[];
+	
+	//点击按钮
+	function btnclicktest(){
+		var start_count=parseInt(document.getElementById("startCount").value);
+		circulation_count1=start_count;
+		circulation_count2=start_count+1;
+		var p1 = new BMap.Point(allPts[circulation_count1].lon,allPts[circulation_count1].lat);
+		var p2 = new BMap.Point(allPts[circulation_count2].lon,allPts[circulation_count2].lat);
+		computeRoute(p1,p2);
+		result+=circulation_count1+","+circulation_count2+","+allPts[circulation_count1].region+","+allPts[circulation_count2].region+",";
+	}
+	
+	//读取txt文档	
+	var textResult="";
+	function txtShowTest(){
+		var file=document.getElementById("file").files[0];
+		if(file){
+			var reader=new FileReader();
+			reader.onload=function(e){
+				var con=document.getElementById("contentText");
+				con.innerHTML=e.target.result;
+				textResult=e.target.result;
+				var textSplit=textResult.split("\n");
+				
+				//提取出每一个点的信息,包括id,lat,lon,region
+				for(var i=1;i<textSplit.length;i++){
+					var id=textSplit[i].split(',')[0];
+					var lon=textSplit[i].split(',')[4];
+					var lat=textSplit[i].split(',')[5];
+					var region=textSplit[i].split(',')[10];
+				
+					var pt=new ptLocation(id,lon,lat,region);
+					allPts.push(pt);
+				}
+			}
+		}
+		reader.readAsText(file);
+	}
+	
+		
+	//定义一个地点
+	function ptLocation(id,lon,lat,region){
+		this.id=id;
+		this.lon=lon;
+		this.lat=lat;
+		this.region=region;
+/*
+		this.computePts=function(){
+			for(var j=id+1;j<allPts.length-1;j++){
+				var p1 = new BMap.Point(this.lon,this.lat);
+				var p2 = new BMap.Point(allPts[j].lon,allPts[j].lat);
+				computeRoute(p1,p2);
+				result+=this.id+",("+this.lon+","+this.lat+"),"+this.region+","
+				+allPts[j].id+",("+allPts[j].lon+","+allPts[j].lat+"),"+allPts[j].region
+				+busDis+","+busTime+","+carDis+","+carTime+"\n";
+			}
+		}
+		*/
+	}
+</script>
+<body>
+	<!-- <div id="allmap"></div> -->
+	<input id="startCount" value="0"/>
+	<button id="btn" onclick="btnclicktest()">Start!</button>
+	<p>文本文件：<input type="file" name="file" id='file' onchange='txtShowTest()'/></p>
+	<p id='contentText'></p>
+	<p>公交结果：</p>
+	<p id='contentFinal'></p>
+</body>
+</html>
