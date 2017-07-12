@@ -16,14 +16,17 @@
 	//获取驾车时间和距离
 	var searchCompleteCar = function (results){
 		if (transitCar.getStatus() != BMAP_STATUS_SUCCESS){
-			return ;
+			computeNext();
+	//		return ;
 		}
 		//获取具体的时间和距离
 		var plan=results.getPlan(0);
 		carDis=plan.getDistance(true);
 		carTime=plan.getDuration(true);
 		result+=carDis+","+carTime+"\n";
+		computeNext();
 		
+		function computeNext(){
 		//第一个点不动，获取第二个点
 		if(circulation_count2!==allPts.length-2){
 			circulation_count2+=1;
@@ -45,6 +48,7 @@
 			var p2 = new BMap.Point(allPts[circulation_count2].lon,allPts[circulation_count2].lat);
 			computeRoute(p1,p2);
 			result+=circulation_count1+","+circulation_count2+","+allPts[circulation_count1].region+","+allPts[circulation_count2].region+",";
+		}
 		}
 	}
 		
